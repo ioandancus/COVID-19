@@ -1,23 +1,47 @@
+# used libraries
+
+# general work with tidy libraries 
 library(tidyverse)
-library(rjson)
-library(rgdal)
-library(lubridate)
-library(broom)
-library(viridis)
-library(plotly)
-library(ggsci)
-library(rmapshaper)
+
+# for the mapvalues function
 library(plyr)
+
+# work with data tables seems to be faster for large datasets
 library(data.table)
 
+# to read the json files
+library(rjson)
 
+#to read the shape files
+library(rgdal)
+# to simplify the shape files
+library(rmapshaper)
+
+# working with dates
+library(lubridate)
+
+# color palettes
+library(broom)
+library(viridis)
+library(ggsci)
+
+# plot
+library(plotly)
+
+
+
+# defined some colors for two color palettes
 cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
           "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 cbp2 <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
           "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
+
 readRouData <- function(fileName = "date_07_octombrie_la_13_00.json"){
+  # read the data from a Json file containing the COVID data from Romania 
+  # downloadable from https://datelazi.ro/
+  # the data are transformed into a filtered tibble
   raw_json <- rjson::fromJSON(file = fileName)
   x <- raw_json$historicalData %>% Vectorize()
   df <- map_dfr(x, ~as_tibble(t(.)))
@@ -42,6 +66,9 @@ readRouData <- function(fileName = "date_07_octombrie_la_13_00.json"){
 }
 
 plotTimeData <-function(filtered_df){
+  # filter and transform, transform and plot the data from the COVID-19data data.frame
+  # the plot contains the active cases divided by 10 displayed as a line
+  # infected per day, cured per day and deceased per day as bar/col plot
   coeff <- 10
   p1 <- filtered_df %>% 
     mutate(cured_per_day = -cured_per_day) %>% 
@@ -75,9 +102,12 @@ plotTimeData <-function(filtered_df){
 }
 
 readRomShape <- function(fileName = "ro_judete_poligon"){
+  # read the Romanian county shape file from the folder fileName
+  # reduce the resolution of the shape file
+  # add the id of the counties
   Ro_spdf <- readOGR( 
-      dsn= "ro_judete_poligon" , 
-      layer="ro_judete_poligon",
+      dsn= fileName, 
+      layer= fileName,
       verbose=FALSE
     )
   Ro_spdf <- ms_simplify(Ro_spdf,keep = 0.001, keep_shapes = TRUE)
@@ -91,6 +121,7 @@ readRomShape <- function(fileName = "ro_judete_poligon"){
 }
 
 combineRomDataDate <- function(TimeDate = "2021-10-02", Shape, Covid){
+  # old version of the function for combine the Romanian Shape with the Romanian Covid data for a specific date
   county_incidence <- Covid %>% 
     filter(parsed_date == TimeDate) %>% 
     select(incidence) %>% 
@@ -113,6 +144,7 @@ combineRomDataDate <- function(TimeDate = "2021-10-02", Shape, Covid){
 }
 
 plotCovidShape <- function(ShapeData){
+  # old function for plotting the Covid data on the Romania map for a specific date
   p2 <- ggplot() +
     geom_polygon(data = ShapeData, aes( x = long, y = lat, group = group, fill = infection), color="white") +
     scale_fill_fermenter(n.breaks = 9, palette = "RdYlGn", limits = c(0,10))+
@@ -130,6 +162,7 @@ plotCovidShape <- function(ShapeData){
 }
 
 new_group_Map_Covid <- function(covid_df, map_shape){
+  # new function that combines all the data for Covid in Romania with the Romanian shape file
   covidData <- as.data.table(covid_df %>% 
                       select(parsed_date, incidence) %>% 
                       unnest_wider(incidence) %>% 
@@ -148,6 +181,7 @@ new_group_Map_Covid <- function(covid_df, map_shape){
 }
 
 plot_new_Covid_Shape <- function(ShapeData, plot_date){
+  # new function that plot the Covid data from a specific date on the Romania map
   p <- ShapeData %>% filter(Date == ymd(plot_date)) %>% 
     ggplot() +
     geom_polygon(aes(x = long, y = lat, group = group, fill = incidence), color="white") +

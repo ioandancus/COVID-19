@@ -11,20 +11,19 @@ library(tidyverse)
 library(plotly)
 library(DT)
 
+# include the functions from the file
 source("MyFunctionsForROUData.R")
 
-eventReactive(input$Load,{
-  
-})
-  
-  
+# read the Romanian shape file
 RomShape <- readRomShape()
 
+# Read the Romanian Covid data from the imput file
 CovidData <- reactive({
   #if (is.null(input$CovidFile$datapath)) return()
   readRouData(input$CovidFile$datapath)
   })
 
+# merge the Covid Data with the map data
 CovidShape <- reactive({
   new_group_Map_Covid(CovidData(),RomShape)
 })
@@ -71,6 +70,7 @@ COVID-19 Romania
 ### Temporal trend
 
 ```{r}
+# plot the Covid data in time
 renderPlotly({
   if (is.null(CovidData())) return()
   plotTimeData(CovidData())
@@ -80,6 +80,7 @@ renderPlotly({
 ### Data
 
 ```{r}
+# display the data for Covid in time
 renderDT({
   if (is.null(CovidData())) return()
   datatable(
@@ -100,6 +101,7 @@ Map
 ====================
 
 ```{r}
+# plot the Covid data on the map for the input date
 renderPlotly({
   #plotCovidShape(combineRomDataDate(input$date[1], RomShape, CovidData()))
   plot_new_Covid_Shape(CovidShape(), input$date[1])
@@ -110,6 +112,7 @@ renderPlotly({
 Map Data
 ==============================
 ```{r}
+# Table with all the Covid data on the map and in time
 renderDT({
   datatable(
     CovidShape() %>% drop_na(),
